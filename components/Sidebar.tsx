@@ -1,6 +1,17 @@
 import React, { useCallback, useState } from "react";
 import styled from "styled-components";
-import { Avatar, IconButton, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions } from "@mui/material";
+import {
+  Avatar,
+  IconButton,
+  Tooltip,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  TextField,
+  DialogActions,
+} from "@mui/material";
 import ChatIcon from "@mui/icons-material/Chat";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -56,33 +67,36 @@ const StyledSearchInput = styled.input`
   outline: none;
   border: none;
   flex: 1;
+  background-color: white;
+  color: black;
 `;
 
 const Sidebar = () => {
   const [user, _loading, _error] = useAuthState(auth);
-  const [isOpenNewConversationDialog, setIsOpenNewConversationDialog] = useState(false);
-  const [recipientEmail, setRecipientEmail] = useState('')
-  
+  const [isOpenNewConversationDialog, setIsOpenNewConversationDialog] =
+    useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+
   const toggleNewConversationDialog = (isOpen: boolean) => {
     setIsOpenNewConversationDialog(isOpen);
 
-    if (!isOpen) setRecipientEmail('');
-  }
+    if (!isOpen) setRecipientEmail("");
+  };
 
   const closeNewConversationDialog = useCallback(() => {
-    toggleNewConversationDialog(false)
+    toggleNewConversationDialog(false);
   }, []);
 
   const createConversation = useCallback(() => {
-    console.log('CREATING CONVERSATION');
+    console.log("CREATING CONVERSATION");
     closeNewConversationDialog();
   }, []);
-  
+
   const logOut = useCallback(async () => {
     try {
       await signOut(auth);
     } catch (error) {
-      console.log('error', error);
+      console.log("error", error);
     }
   }, []);
 
@@ -105,17 +119,21 @@ const Sidebar = () => {
         </div>
       </StyledHeader>
       <StyledSearch>
-        <SearchIcon />
+        <SearchIcon color="primary" sx={{ marginRight: "10px" }} />
         <StyledSearchInput placeholder="Search in coversation" />
       </StyledSearch>
-      <StyledSidebarButton>
+      <StyledSidebarButton onClick={() => toggleNewConversationDialog(true)}>
         Start a new conversation
       </StyledSidebarButton>
-      <Dialog open={isOpenNewConversationDialog} onClose={closeNewConversationDialog}>
+      <Dialog
+        open={isOpenNewConversationDialog}
+        onClose={closeNewConversationDialog}
+      >
         <DialogTitle>New Conversation</DialogTitle>
         <DialogContent>
           <DialogContentText>
-           Please enter a Google email address for the user you wish to chat with
+            Please enter a Google email address for the user you wish to chat
+            with
           </DialogContentText>
           <TextField
             autoFocus
@@ -129,7 +147,9 @@ const Sidebar = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeNewConversationDialog}>Cancel</Button>
-          <Button disabled={!recipientEmail} onClick={createConversation}>Subscribe</Button>
+          <Button disabled={!recipientEmail} onClick={createConversation}>
+            Subscribe
+          </Button>
         </DialogActions>
       </Dialog>
     </StyledContainer>
