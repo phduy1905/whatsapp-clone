@@ -17,8 +17,13 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import { signOut } from "firebase/auth";
-import { auth } from "../config/firebase";
+import { auth, db } from "../config/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import * as EmailValidator from "email-validator";
+import { addDoc, collection, query, where } from "firebase/firestore";
+import { useCollection } from "react-firebase-hooks/firestore";
+import { Conversation } from "../types";
+import ConversationSelect from "./ConversationSelect";
 
 const StyledContainer = styled.div`
   height: 100vh;
@@ -27,6 +32,14 @@ const StyledContainer = styled.div`
   overflow-y: scroll;
   border-right: 1px solid whitesmoke;
   background-color: white;
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 `;
 
 const StyledHeader = styled.div`
@@ -77,6 +90,21 @@ const Sidebar = () => {
     useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
 
+  const isInvitingSelf = recipientEmail === user?.email;
+
+  const queryGetConversationsForCurrentUser = query(
+    collection(db, "conversations"),
+    where("users", "array-contains", user?.email)
+  );
+  const [conversationsSnapshot] = useCollection(
+    queryGetConversationsForCurrentUser
+  );
+
+  const isConversationAlreadyExisted = (recipientEmail: string) =>
+    conversationsSnapshot?.docs.find((conversation) =>
+      (conversation.data() as Conversation).users.includes(recipientEmail)
+    );
+
   const toggleNewConversationDialog = (isOpen: boolean) => {
     setIsOpenNewConversationDialog(isOpen);
 
@@ -87,10 +115,23 @@ const Sidebar = () => {
     toggleNewConversationDialog(false);
   }, []);
 
-  const createConversation = useCallback(() => {
-    console.log("CREATING CONVERSATION");
+  const createConversation = async () => {
+    if (!recipientEmail) return;
+
+    if (
+      EmailValidator.validate(recipientEmail) &&
+      !isInvitingSelf &&
+      !isConversationAlreadyExisted(recipientEmail)
+    ) {
+      // Add conversation user to db "conversation" collection
+      // A conversation is between logged in user and the user invited
+
+      await addDoc(collection(db, "conversations"), {
+        users: [user?.email, recipientEmail],
+      });
+    }
     closeNewConversationDialog();
-  }, []);
+  };
 
   const logOut = useCallback(async () => {
     try {
@@ -103,7 +144,7 @@ const Sidebar = () => {
   return (
     <StyledContainer>
       <StyledHeader>
-        <Tooltip title="USER EMAIL" placement="right">
+        <Tooltip title={user?.email} placement="right">
           <StyledUserAvatar src={user?.photoURL || ""} />
         </Tooltip>
         <div>
@@ -125,6 +166,14 @@ const Sidebar = () => {
       <StyledSidebarButton onClick={() => toggleNewConversationDialog(true)}>
         Start a new conversation
       </StyledSidebarButton>
+      {/* List of conversations */}
+      {conversationsSnapshot?.docs.map((conversation) => (
+        <ConversationSelect
+          key={conversation.id}
+          id={conversation.id}
+          conversationUsers={(conversation.data() as Conversation).users}
+        />
+      ))}
       <Dialog
         open={isOpenNewConversationDialog}
         onClose={closeNewConversationDialog}
@@ -148,7 +197,7 @@ const Sidebar = () => {
         <DialogActions>
           <Button onClick={closeNewConversationDialog}>Cancel</Button>
           <Button disabled={!recipientEmail} onClick={createConversation}>
-            Subscribe
+            Create
           </Button>
         </DialogActions>
       </Dialog>
